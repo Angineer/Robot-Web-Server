@@ -10,6 +10,7 @@ install_manifest.txt
 Testing
 compile_commands.json
 .usages_clang
+build
 
 *.crt
 *.key

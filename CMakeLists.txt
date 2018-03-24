@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.0)
 
-project (Simple-Web-Server)
+project (Robot-Web-Server)
 
 option(USE_STANDALONE_ASIO "set ON to use standalone Asio instead of Boost.Asio" OFF)
 option(BUILD_TESTING "set ON to build library tests" OFF)
@@ -13,7 +13,8 @@ endif()
 
 add_library(simple-web-server INTERFACE)
 
-target_include_directories(simple-web-server INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories("../Robot-Base/include")
+target_include_directories(simple-web-server INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 find_package(Threads REQUIRED)
 target_link_libraries(simple-web-server INTERFACE ${CMAKE_THREAD_LIBS_INIT})
@@ -52,24 +53,23 @@ if(OPENSSL_FOUND)
     target_include_directories(simple-web-server INTERFACE ${OPENSSL_INCLUDE_DIR})
 endif()
 
-# If Simple-Web-Server is not a sub-project:
-if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-    add_executable(http_examples http_examples.cpp)
-    target_link_libraries(http_examples simple-web-server)
-    find_package(Boost 1.53.0 COMPONENTS system thread filesystem REQUIRED)
-    target_link_libraries(http_examples ${Boost_LIBRARIES})
-    target_include_directories(http_examples PRIVATE ${Boost_INCLUDE_DIR})
-    if(OPENSSL_FOUND)
-        add_executable(https_examples https_examples.cpp)
-        target_link_libraries(https_examples simple-web-server)
-        target_link_libraries(https_examples ${Boost_LIBRARIES})
-        target_include_directories(https_examples PRIVATE ${Boost_INCLUDE_DIR})
-    endif()
-    
-    set(BUILD_TESTING ON)
-    
-    install(FILES server_http.hpp client_http.hpp server_https.hpp client_https.hpp crypto.hpp utility.hpp status_code.hpp DESTINATION include/simple-web-server)
+add_executable(server ./src/server.cpp)
+
+target_link_libraries(server simple-web-server robie)
+
+find_package(Boost 1.53.0 COMPONENTS system thread filesystem REQUIRED)
+target_link_libraries(server ${Boost_LIBRARIES})
+target_include_directories(server PRIVATE ${Boost_INCLUDE_DIR})
+if(OPENSSL_FOUND)
+    add_executable(https_examples https_examples.cpp)
+    target_link_libraries(https_examples simple-web-server)
+    target_link_libraries(https_examples ${Boost_LIBRARIES})
+    target_include_directories(https_examples PRIVATE ${Boost_INCLUDE_DIR})
 endif()
+
+set(BUILD_TESTING OFF)
+
+install(FILES server_http.hpp client_http.hpp server_https.hpp client_https.hpp crypto.hpp utility.hpp status_code.hpp DESTINATION include/simple-web-server)
 
 if(BUILD_TESTING)
     enable_testing()
