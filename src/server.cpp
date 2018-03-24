@@ -51,10 +51,14 @@ int main() {
     // Retrieve string:
     auto input = request->content.string();
 
+    // request->content.string() is a convenience function for:
+    // stringstream ss;
+    // ss << request->content.rdbuf();
+    // auto content=ss.str();
+
     // Parse inputs
     vector<string> inputs = split(input, '&');
     map<robie_inv::ItemType, int> items;
-    stringstream output;
 
     for(vector<string>::iterator it = inputs.begin(); it != inputs.end(); ++it) {
       vector<string> single = split(*it, '=');
@@ -63,38 +67,32 @@ int main() {
         // Check if item is in map
         if(items.find(robie_inv::ItemType(single[1])) != items.end()){
           items[single[1]]++;
-
-          output << "Incrementing item " << single[1] << "\n";
         }
         // Otherwise, add it
         else{
           items.insert(pair<robie_inv::ItemType, int>(robie_inv::ItemType(single[1]), 1));
-
-          output << "Incrementing item " << single[1] << "\n";
         }
       }
       else if(single[0] == "location"){};
         // TODO: implement order locations
     }
 
-    string content = output.str();
+    // Create order
     robie_inv::Order order(items);
     order.write_serial();
 
-    /* Send order to inventory server */
+    // Send order to inventory server
     robie_comm::Client client("localhost", 5000);
     client.connect();
     client.send(order);
     client.disconnect();
 
-    // request->content.string() is a convenience function for:
-    // stringstream ss;
-    // ss << request->content.rdbuf();
-    // auto content=ss.str();
-
+    // Let user know their order is on its way
+    stringstream output;
+    output << "Order placed!";
+    string content = output.str();
     *response << "HTTP/1.1 200 OK\r\nContent-Length: " << content.length() << "\r\n\r\n"
               << content;
-
 
     // Alternatively, use one of the convenience functions, for instance:
     // response->write(stream);
