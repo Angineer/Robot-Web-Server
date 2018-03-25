@@ -1,21 +1,16 @@
-
-
 <html>
     <head>
-        <title>How can I help you?</title>
-        <style>
-            table {
-                width: 100%;
+	<title>How can I help you?</title>
+	<style>
+	    table {
+		/* width: 100%; */
+		text-align: center;
+		margin-left: auto;
+		margin-right: auto;
+	    }
+	    td {
+                vertical-align: top;
             }
-            td {
-                text-align: center;
-            }
-            select {
-                text-align: center;
-                height: 100px;
-                width: 100%;
-            }
-            input { font-size: 200%; }
             #main {
                 text-align: center;
             }
@@ -36,62 +31,43 @@
 
             }
         </style>
+	<script>
+		function addItem() {
+			var row = document.getElementById("left_table").insertRow(index = 1);
+			row.innerHTML = "<tr><td> \
+				<select name='item'> \
+					<option value='apple'>Apple</option> \
+					<option value='cracker'>Cracker</option> \
+					<option value='granola'>Granola Bar</option> \
+				</select> \
+				</td></tr>";
+		}
+	</script>
     </head>
     <body>
         <div id="main">
             <p>Please select a snack and delivery location.</p>
-            <form action="/order" method="post">
-                <table>
-                    <tr>
-                        <td>
-                            <p>Items:</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-<!--                             <div class="building" onclick="myfunction();">
-                               
-                            </div> -->
-                            <select name="item">
-                                <option value="apple">Apple</option>
-                                <option value="cracker">Cracker</option>
-                                <option value="granola bar">Granola Bar</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-<!--                             <div class="building" onclick="myfunction();">
-                               
-                            </div> -->
-                            <select name="item">
-                                <option value="apple">Apple</option>
-                                <option value="cracker">Cracker</option>
-                                <option value="granola bar">Granola Bar</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <p>Location:</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <select name="location">
-                                <option value="couch">Couch</option>
-                                <option value="kitchen">Kitchen</option>
-                                <option value="bedroom">Bedroom</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <input type="submit" value="Submit">
-                        </td>
-                    </tr>
-                </table>
-    		</form> 
+              <form action="/order" method="post">
+		<table>
+			<tr><td>
+                	<table id="left_table">
+				<tr><td>Items</td></tr>
+				<tr><td><button type="button" onclick="addItem()">+</td></tr>
+			</table>
+			</td>
+			<td>
+			<table id="right_table">
+				<tr><td>Location</td></tr>
+				<tr><td><select name="location">
+					<option value="couch">Couch</option>
+					<option value="kitchen">Kitchen</option>
+					<option value="bedroom">Bedroom</option>
+					</select></td></tr>
+			</table>
+			</td></tr>
+		</table>
+		<button>Submit</button>
+		</form> 
         </div>
     </body>
 </html>
