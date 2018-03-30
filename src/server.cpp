@@ -99,9 +99,11 @@ int main() {
 
   // Place order
   server.resource["^/order$"]["GET"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
-    // Send order to inventory server
+    // Get current inventory
+    robie_comm::Command command("summary");
     robie_comm::Client client("localhost", 5000);
     client.connect();
+    string curr_inv = client.send(command);
     client.disconnect();
 
     // Do things the Biff way for now
@@ -119,6 +121,8 @@ int main() {
     output << "    </script>\n";
     output << "  </head>\n";
     output << "  <body style='text-align:center;'>\n";
+    output << "    <p>Current Inventory:</p>\n";
+    output << "    " << curr_inv << "\n";
     output << "    <p>Please select a snack and delivery location.</p>\n";
     output << "    <form action='/submit' method='post'>\n";
     output << "      <table style='text-align:center; margin-left:auto; margin-right:auto;'>\n";
