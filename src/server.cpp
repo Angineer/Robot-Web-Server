@@ -46,15 +46,11 @@ int main() {
   server.config.port = 8080;
 
   // Add resources using path-regex and method-string, and an anonymous function
-  // POST-example for the path /string, responds the posted string
-  server.resource["^/order$"]["POST"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
-    // Retrieve string:
-    auto input = request->content.string();
 
-    // request->content.string() is a convenience function for:
-    // stringstream ss;
-    // ss << request->content.rdbuf();
-    // auto content=ss.str();
+  // POST order
+  server.resource["^/submit$"]["POST"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
+    // Retrieve POST string:
+    auto input = request->content.string();
 
     // Parse inputs
     vector<string> inputs = split(input, '&');
@@ -84,12 +80,15 @@ int main() {
     // Send order to inventory server
     robie_comm::Client client("localhost", 5000);
     client.connect();
-    client.send(order);
+    string inv_resp = client.send(order);
     client.disconnect();
 
-    // Let user know their order is on its way
+    // Let user know order status
     stringstream output;
-    output << "Order placed!";
+    output << "<html><head></head><body style='text-align: center'>";
+    output << "<p>" << inv_resp << "</p>";
+    output << "<a href='/order'>Place a new order</a>";
+    output << "</body></html>";
     string content = output.str();
     *response << "HTTP/1.1 200 OK\r\nContent-Length: " << content.length() << "\r\n\r\n"
               << content;
@@ -98,81 +97,62 @@ int main() {
     // response->write(stream);
   };
 
-  // POST-example for the path /json, responds firstName+" "+lastName from the posted json
-  // Responds with an appropriate error message if the posted json is not valid, or if firstName or lastName is missing
-  // Example posted json:
-  // {
-  //   "firstName": "John",
-  //   "lastName": "Smith",
-  //   "age": 25
-  // }
-  server.resource["^/json$"]["POST"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
-    try {
-      ptree pt;
-      read_json(request->content, pt);
+  // Place order
+  server.resource["^/order$"]["GET"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
+    // Send order to inventory server
+    robie_comm::Client client("localhost", 5000);
+    client.connect();
+    client.disconnect();
 
-      auto name = pt.get<string>("firstName");
+    // Do things the Biff way for now
+    stringstream output;
+    output << "<!DOCTYPE html>\n";
+    output << "<html>\n";
+    output << "  <head>\n";
+    output << "    <title>How can I help you?</title>\n";
+    output << "    <script>\n";
+    output << "      function addItem() {\n";
+    output << "        var count_rows = document.getElementById('left_table').rows.length;\n";
+    output << "        var row = document.getElementById('left_table').insertRow(index = count_rows-1);\n";
+    output << "        row.innerHTML = \"<tr><td> <select name='item'> <option value='apple'>Apple</option> <option value='cracker'>Cracker</option> <option value='granola'>Granola Bar</option> </select> </td></tr>\";\n";
+    output << "      }\n";
+    output << "    </script>\n";
+    output << "  </head>\n";
+    output << "  <body style='text-align:center;'>\n";
+    output << "    <p>Please select a snack and delivery location.</p>\n";
+    output << "    <form action='/submit' method='post'>\n";
+    output << "      <table style='text-align:center; margin-left:auto; margin-right:auto;'>\n";
+    output << "        <tr>\n";
+    output << "          <td>\n";
+    output << "            <table id='left_table'>\n";
+    output << "              <tr><td>Items</td></tr>\n";
+    output << "              <tr><td><button type='button' onclick='addItem()'>+</button></td></tr>\n";
+    output << "            </table>\n";
+    output << "          </td>\n";
+    output << "          <td style='vertical-align:top;'>\n";
+    output << "            <table id='right_table'>\n";
+    output << "              <tr><td>Location</td></tr>\n";
+    output << "              <tr><td><select name='location'>\n";
+    output << "                <option value='couch'>Couch</option>\n";
+    output << "                <option value='kitchen'>Kitchen</option>\n";
+    output << "                <option value='bedroom'>Bedroom</option>\n";
+    output << "              </select></td></tr>\n";
+    output << "            </table>\n";
+    output << "          </td>\n";
+    output << "        </tr>\n";
+    output << "      </table>\n";
+    output << "      <button>Submit</button>\n";
+    output << "    </form>\n";
+    output << "  </body>\n";
+    output << "</html>\n";
 
-      *response << "HTTP/1.1 200 OK\r\n"
-                << "Content-Length: " << name.length() << "\r\n\r\n"
-                << name;
-    }
-    catch(const exception &e) {
-      *response << "HTTP/1.1 400 Bad Request\r\nContent-Length: " << strlen(e.what()) << "\r\n\r\n"
-                << e.what();
-    }
-
-
-    // Alternatively, using a convenience function:
-    // try {
-    //     ptree pt;
-    //     read_json(request->content, pt);
-
-    //     auto name=pt.get<string>("firstName")+" "+pt.get<string>("lastName");
-    //     response->write(name);
-    // }
-    // catch(const exception &e) {
-    //     response->write(SimpleWeb::StatusCode::client_error_bad_request, e.what());
-    // }
+    string content = output.str();
+    *response << "HTTP/1.1 200 OK\r\nContent-Length: " << content.length() << "\r\n\r\n"
+              << content;
   };
 
-  // GET-example for the path /info
-  // Responds with request-information
-  server.resource["^/info$"]["GET"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
-    stringstream stream;
-    stream << "<h1>Request from " << request->remote_endpoint_address() << ":" << request->remote_endpoint_port() << "</h1>";
-
-    stream << request->method << " " << request->path << " HTTP/" << request->http_version;
-
-    stream << "<h2>Query Fields</h2>";
-    auto query_fields = request->parse_query_string();
-    for(auto &field : query_fields)
-      stream << field.first << ": " << field.second << "<br>";
-
-    stream << "<h2>Header Fields</h2>";
-    for(auto &field : request->header)
-      stream << field.first << ": " << field.second << "<br>";
-
-    response->write(stream);
-  };
-
-  // GET-example for the path /match/[number], responds with the matched string in path (number)
-  // For instance a request GET /match/123 will receive: 123
-  server.resource["^/match/([0-9]+)$"]["GET"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
-    response->write(request->path_match[1]);
-  };
-
-  // GET-example simulating heavy work in a separate thread
-  server.resource["^/work$"]["GET"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> /*request*/) {
-    thread work_thread([response] {
-      this_thread::sleep_for(chrono::seconds(5));
-      response->write("Work done");
-    });
-    work_thread.detach();
-  };
-
-  // Default GET-example. If no other matches, this anonymous function will be called.
-  // Will respond with content in the web/-directory, and its subdirectories.
+  // Default GET-resource. If no other matches, this anonymous function will be called.
+  // Will respond with content in the html/-directory, and its subdirectories.
   // Default file: index.html
   // Can for instance be used to retrieve an HTML 5 client that uses REST-resources on this server
   server.default_resource["GET"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {

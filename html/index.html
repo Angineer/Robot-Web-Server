@@ -1,73 +1,9 @@
 <html>
     <head>
-	<title>How can I help you?</title>
-	<style>
-	    table {
-		/* width: 100%; */
-		text-align: center;
-		margin-left: auto;
-		margin-right: auto;
-	    }
-	    td {
-                vertical-align: top;
-            }
-            #main {
-                text-align: center;
-            }
-            .building {
-                 cursor: pointer;
-                 background-color: #AFAFAF;
-                 color: #000000;
-                 width: 200px;
-                 height: 70px;
-                 float: left;
-                 margin: 5px;
-            }
-
-            .building:hover {
-
-                 background-color: #8F8F8F;
-                 color: #111111;
-
-            }
-        </style>
-	<script>
-		function addItem() {
-			var row = document.getElementById("left_table").insertRow(index = 1);
-			row.innerHTML = "<tr><td> \
-				<select name='item'> \
-					<option value='apple'>Apple</option> \
-					<option value='cracker'>Cracker</option> \
-					<option value='granola'>Granola Bar</option> \
-				</select> \
-				</td></tr>";
-		}
-	</script>
+		<title>How can I help you?</title>
+		<meta http-equiv="refresh" content="0; url=/order" />
     </head>
     <body>
-        <div id="main">
-            <p>Please select a snack and delivery location.</p>
-              <form action="/order" method="post">
-		<table>
-			<tr><td>
-                	<table id="left_table">
-				<tr><td>Items</td></tr>
-				<tr><td><button type="button" onclick="addItem()">+</td></tr>
-			</table>
-			</td>
-			<td>
-			<table id="right_table">
-				<tr><td>Location</td></tr>
-				<tr><td><select name="location">
-					<option value="couch">Couch</option>
-					<option value="kitchen">Kitchen</option>
-					<option value="bedroom">Bedroom</option>
-					</select></td></tr>
-			</table>
-			</td></tr>
-		</table>
-		<button>Submit</button>
-		</form> 
-        </div>
+        <a href="/order">Place an order</a>
     </body>
 </html>
