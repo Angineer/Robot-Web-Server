@@ -106,6 +106,8 @@ int main() {
     string curr_inv = client.send(command);
     client.disconnect();
 
+    vector<string> items = split(curr_inv, '\n');
+
     // Do things the Biff way for now
     stringstream output;
     output << "<!DOCTYPE html>\n";
@@ -116,7 +118,12 @@ int main() {
     output << "      function addItem() {\n";
     output << "        var count_rows = document.getElementById('left_table').rows.length;\n";
     output << "        var row = document.getElementById('left_table').insertRow(index = count_rows-1);\n";
-    output << "        row.innerHTML = \"<tr><td> <select name='item'> <option value='apple'>Apple</option> <option value='cracker'>Cracker</option> <option value='granola'>Granola Bar</option> </select> </td></tr>\";\n";
+    output << "        row.innerHTML = \"<tr><td><select name='item'>";
+    for(auto it = items.begin(); it != items.end(); ++it){
+      vector<string> single = split(*it, ' ');
+      output << "          <option value='" << single[1] << "'>" << single[1] << "</option>";
+    }
+    output << "</select></td></tr>\";";
     output << "      }\n";
     output << "    </script>\n";
     output << "  </head>\n";
@@ -124,7 +131,11 @@ int main() {
     output << "    <table style='margin-left:auto; margin-right:auto'>\n";
     output << "      <tr style='vertical-align:top;'><td style='vertical-align:top; padding:0px 30px;'>\n";
     output << "        <p>Current Inventory</p>\n";
-    output << "        " << curr_inv << "\n";
+    output << "        <table style='margin-left:auto; margin-right:auto'>\n";
+    for(auto it = items.begin(); it != items.end(); ++it){
+      output << "          <tr><td>" << *it << "</td></tr>\n";
+    }
+    output << "        </table>\n";
     output << "      </td><td style='vertical-align:top; padding:0px 30px;'>\n";
     output << "        <p>Please select a snack and delivery location</p>\n";
     output << "        <form action='/submit' method='post'>\n";
