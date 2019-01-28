@@ -79,9 +79,11 @@ int main() {
 
     // Send order to inventory server
     robie_comm::Client client("localhost", 5000);
-    client.connect();
-    string inv_resp = client.send(order);
-    client.disconnect();
+    string inv_resp { "Couldn't connect to inventory server!" };
+    if ( client.connect() == 0 ) {
+        inv_resp = client.send(order);
+        client.disconnect();
+    }
 
     // Let user know order status
     stringstream output;
@@ -98,18 +100,22 @@ int main() {
   };
 
   // Place order
-  server.resource["^/order$"]["GET"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
+  server.resource["^/order$"]["GET"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> /* request */ ) {
     // Get current inventory
     robie_comm::Command command("summary");
     robie_comm::Client client("localhost", 5000);
-    client.connect();
-    string curr_inv = client.send(command);
-    client.disconnect();
+
+    stringstream output;
+    string curr_inv { "" };
+
+    if ( client.connect() == 0 ) {
+        string curr_inv = client.send(command);
+        client.disconnect();
+    }
 
     vector<string> items = split(curr_inv, '\n');
 
     // Do things the Biff way for now
-    stringstream output;
     output << "<!DOCTYPE html>\n";
     output << "<html>\n";
     output << "  <head>\n";
