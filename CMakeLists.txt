@@ -13,7 +13,7 @@ endif()
 
 add_library(simple-web-server INTERFACE)
 
-include_directories("../Robot-Base/include")
+include_directories("../robot-base/include")
 target_include_directories(simple-web-server INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 find_package(Threads REQUIRED)
@@ -55,6 +55,9 @@ endif()
 
 add_executable(server ./src/server.cpp)
 
+# Robot web server
+set ( CEREAL_INCLUDE_DIR "../cereal/include" CACHE FILEPATH "Cereal include folder" )
+target_include_directories ( server PUBLIC ${CEREAL_INCLUDE_DIR} )
 target_link_libraries(server simple-web-server robie)
 
 find_package(Boost 1.53.0 COMPONENTS system thread filesystem REQUIRED)

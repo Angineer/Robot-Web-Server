@@ -1,6 +1,9 @@
 #include "client_http.hpp"
 #include "server_http.hpp"
-#include "inventory.h"
+#include "communication/Client.h"
+#include "communication/Command.h"
+#include "communication/Order.h"
+#include "inventory/Snack.h"
 
 // Added for the json-example
 #define BOOST_SPIRIT_THREADSAFE
@@ -54,19 +57,19 @@ int main() {
 
     // Parse inputs
     vector<string> inputs = split(input, '&');
-    map<robie_inv::ItemType, int> items;
+    map<Snack, int> items;
 
     for(vector<string>::iterator it = inputs.begin(); it != inputs.end(); ++it) {
       vector<string> single = split(*it, '=');
 
       if(single[0] == "item"){
         // Check if item is in map
-        if(items.find(robie_inv::ItemType(single[1])) != items.end()){
+        if(items.find(Snack(single[1])) != items.end()){
           items[single[1]]++;
         }
         // Otherwise, add it
         else{
-          items.insert(pair<robie_inv::ItemType, int>(robie_inv::ItemType(single[1]), 1));
+          items.insert(pair<Snack, int>(Snack(single[1]), 1));
         }
       }
       else if(single[0] == "location"){};
@@ -74,11 +77,11 @@ int main() {
     }
 
     // Create order
-    robie_inv::Order order(items);
+    Order order(items);
     order.write_serial();
 
     // Send order to inventory server
-    robie_comm::Client client("localhost", 5000);
+    Client client("localhost", 5000);
     client.connect();
     string inv_resp = client.send(order);
     client.disconnect();
@@ -100,8 +103,8 @@ int main() {
   // Place order
   server.resource["^/order$"]["GET"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
     // Get current inventory
-    robie_comm::Command command("summary");
-    robie_comm::Client client("localhost", 5000);
+    Command command("summary");
+    Client client("localhost", 5000);
     client.connect();
     string curr_inv = client.send(command);
     client.disconnect();
