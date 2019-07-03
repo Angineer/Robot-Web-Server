@@ -53,28 +53,15 @@ if(OPENSSL_FOUND)
     target_include_directories(simple-web-server INTERFACE ${OPENSSL_INCLUDE_DIR})
 endif()
 
-add_executable(server ./src/server.cpp)
-
 # Robot web server
+add_executable ( server ./src/server.cpp )
+
 set ( CEREAL_INCLUDE_DIR "../cereal/include" CACHE FILEPATH "Cereal include folder" )
-target_include_directories ( server PUBLIC ${CEREAL_INCLUDE_DIR} )
-target_link_libraries(server simple-web-server robie)
+target_include_directories ( server PUBLIC ../robot-comm/include
+                                           ${CEREAL_INCLUDE_DIR} )
+target_link_libraries ( server simple-web-server robot-comm )
 
-find_package(Boost 1.53.0 COMPONENTS system thread filesystem REQUIRED)
-target_link_libraries(server ${Boost_LIBRARIES})
-target_include_directories(server PRIVATE ${Boost_INCLUDE_DIR})
-if(OPENSSL_FOUND)
-    add_executable(https_examples https_examples.cpp)
-    target_link_libraries(https_examples simple-web-server)
-    target_link_libraries(https_examples ${Boost_LIBRARIES})
-    target_include_directories(https_examples PRIVATE ${Boost_INCLUDE_DIR})
-endif()
+find_package ( Boost 1.53.0 COMPONENTS system thread filesystem REQUIRED )
+target_link_libraries ( server ${Boost_LIBRARIES} )
+target_include_directories ( server PRIVATE ${Boost_INCLUDE_DIR} )
 
-set(BUILD_TESTING OFF)
-
-install(FILES server_http.hpp client_http.hpp server_https.hpp client_https.hpp crypto.hpp utility.hpp status_code.hpp DESTINATION include/simple-web-server)
-
-if(BUILD_TESTING)
-    enable_testing()
-    add_subdirectory(tests)
-endif()

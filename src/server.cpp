@@ -1,27 +1,15 @@
 #include "client_http.hpp"
 #include "server_http.hpp"
-#include "communication/Client.h"
-#include "communication/Command.h"
-#include "communication/Order.h"
-#include "inventory/Snack.h"
-
-// Added for the json-example
-#define BOOST_SPIRIT_THREADSAFE
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
+#include "Client.h"
+#include "Command.h"
+#include "Socket.h"
+#include "Order.h"
 
 // Added for the default_resource example
 #include <algorithm>
 #include <boost/filesystem.hpp>
 #include <fstream>
 #include <vector>
-#ifdef HAVE_OPENSSL
-#include "crypto.hpp"
-#endif
-
-using namespace std;
-// Added for the json-example:
-using namespace boost::property_tree;
 
 using HttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
 using HttpClient = SimpleWeb::Client<SimpleWeb::HTTP>;
@@ -51,25 +39,25 @@ int main() {
   // Add resources using path-regex and method-string, and an anonymous function
 
   // POST order
-  server.resource["^/submit$"]["POST"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
+  server.resource["^/submit$"]["POST"] = [](std::shared_ptr<HttpServer::Response> response, std::shared_ptr<HttpServer::Request> request) {
     // Retrieve POST string:
     auto input = request->content.string();
 
     // Parse inputs
-    vector<string> inputs = split(input, '&');
-    map<Snack, int> items;
+    std::vector<std::string> inputs = split(input, '&');
+    std::map<std::string, int> items;
 
-    for(vector<string>::iterator it = inputs.begin(); it != inputs.end(); ++it) {
-      vector<string> single = split(*it, '=');
+    for ( auto it = inputs.begin(); it != inputs.end(); ++it) {
+        std::vector<std::string> single = split(*it, '=');
 
       if(single[0] == "item"){
         // Check if item is in map
-        if(items.find(Snack(single[1])) != items.end()){
+        if(items.find(std::string(single[1])) != items.end()){
           items[single[1]]++;
         }
         // Otherwise, add it
         else{
-          items.insert(pair<Snack, int>(Snack(single[1]), 1));
+          items.insert(std::pair<std::string, int>(std::string(single[1]), 1));
         }
       }
       else if(single[0] == "location"){};
@@ -81,20 +69,16 @@ int main() {
     order.write_serial();
 
     // Send order to inventory server
-    Client client("localhost", 5000);
-    string inv_resp { "Couldn't connect to inventory server!" };
-    if ( client.connect() == 0 ) {
-        inv_resp = client.send(order);
-        client.disconnect();
-    }
+    Client client ( SocketType::IP, "127.0.0.1:5000" );
+    std::string  inv_resp = client.send(order);
 
     // Let user know order status
-    stringstream output;
+    std::stringstream output;
     output << "<html><head></head><body style='text-align: center'>";
     output << "<p>" << inv_resp << "</p>";
     output << "<a href='/order'>Place a new order</a>";
     output << "</body></html>";
-    string content = output.str();
+    std::string content = output.str();
     *response << "HTTP/1.1 200 OK\r\nContent-Length: " << content.length() << "\r\n\r\n"
               << content;
 
@@ -103,20 +87,15 @@ int main() {
   };
 
   // Place order
-  server.resource["^/order$"]["GET"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> /* request */ ) {
+  server.resource["^/order$"]["GET"] = [](std::shared_ptr<HttpServer::Response> response, std::shared_ptr<HttpServer::Request> /* request */ ) {
     // Get current inventory
     Command command("summary");
-    Client client("localhost", 5000);
+    Client client( SocketType::IP, "127.0.0.1:5000" );
 
-    stringstream output;
-    string curr_inv { "" };
+    std::stringstream output;
+    std::string curr_inv = client.send(command);
 
-    if ( client.connect() == 0 ) {
-        string curr_inv = client.send(command);
-        client.disconnect();
-    }
-
-    vector<string> items = split(curr_inv, '\n');
+    std::vector<std::string> items = split(curr_inv, '\n');
 
     // Do things the Biff way for now
     output << "<!DOCTYPE html>\n";
@@ -129,7 +108,7 @@ int main() {
     output << "        var row = document.getElementById('left_table').insertRow(index = count_rows-1);\n";
     output << "        row.innerHTML = \"<tr><td><select name='item'>";
     for(auto it = items.begin(); it != items.end(); ++it){
-      vector<string> single = split(*it, ' ');
+        std::vector<std::string> single = split(*it, ' ');
       output << "          <option value='" << single[1] << "'>" << single[1] << "</option>";
     }
     output << "</select></td></tr>\";";
@@ -175,7 +154,7 @@ int main() {
     output << "  </body>\n";
     output << "</html>\n";
 
-    string content = output.str();
+    std::string content = output.str();
     *response << "HTTP/1.1 200 OK\r\nContent-Length: " << content.length() << "\r\n\r\n"
               << content;
   };
@@ -184,14 +163,15 @@ int main() {
   // Will respond with content in the html/-directory, and its subdirectories.
   // Default file: index.html
   // Can for instance be used to retrieve an HTML 5 client that uses REST-resources on this server
-  server.default_resource["GET"] = [](shared_ptr<HttpServer::Response> response, shared_ptr<HttpServer::Request> request) {
+  server.default_resource["GET"] = [](std::shared_ptr<HttpServer::Response> response, std::shared_ptr<HttpServer::Request> request) {
     try {
       auto web_root_path = boost::filesystem::canonical("../html");
       auto path = boost::filesystem::canonical(web_root_path / request->path);
       // Check if path is within web_root_path
-      if(distance(web_root_path.begin(), web_root_path.end()) > distance(path.begin(), path.end()) ||
-         !equal(web_root_path.begin(), web_root_path.end(), path.begin()))
-        throw invalid_argument("path must be within root path");
+      if ( std::distance(web_root_path.begin(), web_root_path.end())
+              > std::distance(path.begin(), path.end()) ||
+           !std::equal(web_root_path.begin(), web_root_path.end(), path.begin()))
+        throw std::invalid_argument("path must be within root path");
       if(boost::filesystem::is_directory(path))
         path /= "index.html";
 
@@ -200,51 +180,31 @@ int main() {
       // Uncomment the following line to enable Cache-Control
       // header.emplace("Cache-Control", "max-age=86400");
 
-#ifdef HAVE_OPENSSL
-//    Uncomment the following lines to enable ETag
-//    {
-//      ifstream ifs(path.string(), ifstream::in | ios::binary);
-//      if(ifs) {
-//        auto hash = SimpleWeb::Crypto::to_hex_string(SimpleWeb::Crypto::md5(ifs));
-//        header.emplace("ETag", "\"" + hash + "\"");
-//        auto it = request->header.find("If-None-Match");
-//        if(it != request->header.end()) {
-//          if(!it->second.empty() && it->second.compare(1, hash.size(), hash) == 0) {
-//            response->write(SimpleWeb::StatusCode::redirection_not_modified, header);
-//            return;
-//          }
-//        }
-//      }
-//      else
-//        throw invalid_argument("could not read file");
-//    }
-#endif
-
-      auto ifs = make_shared<ifstream>();
-      ifs->open(path.string(), ifstream::in | ios::binary | ios::ate);
+      auto ifs = std::make_shared<std::ifstream>();
+      ifs->open(path.string(), std::ifstream::in | std::ios::binary | std::ios::ate);
 
       if(*ifs) {
         auto length = ifs->tellg();
-        ifs->seekg(0, ios::beg);
+        ifs->seekg(0, std::ios::beg);
 
-        header.emplace("Content-Length", to_string(length));
+        header.emplace("Content-Length", std::to_string(length));
         response->write(header);
 
         // Trick to define a recursive function within this scope (for example purposes)
         class FileServer {
         public:
-          static void read_and_send(const shared_ptr<HttpServer::Response> &response, const shared_ptr<ifstream> &ifs) {
+          static void read_and_send(const std::shared_ptr<HttpServer::Response> &response, const std::shared_ptr<std::ifstream> &ifs) {
             // Read and send 128 KB at a time
-            static vector<char> buffer(131072); // Safe when server is running on one thread
-            streamsize read_length;
-            if((read_length = ifs->read(&buffer[0], static_cast<streamsize>(buffer.size())).gcount()) > 0) {
+            static std::vector<char> buffer(131072); // Safe when server is running on one thread
+            std::streamsize read_length;
+            if((read_length = ifs->read(&buffer[0], static_cast<std::streamsize>(buffer.size())).gcount()) > 0) {
               response->write(&buffer[0], read_length);
-              if(read_length == static_cast<streamsize>(buffer.size())) {
+              if(read_length == static_cast<std::streamsize>(buffer.size())) {
                 response->send([response, ifs](const SimpleWeb::error_code &ec) {
                   if(!ec)
                     read_and_send(response, ifs);
                   else
-                    cerr << "Connection interrupted" << endl;
+                    std::cerr << "Connection interrupted" << std::endl;
                 });
               }
             }
@@ -253,25 +213,25 @@ int main() {
         FileServer::read_and_send(response, ifs);
       }
       else
-        throw invalid_argument("could not read file");
+        throw std::invalid_argument("could not read file");
     }
-    catch(const exception &e) {
+    catch(const std::exception &e) {
       response->write(SimpleWeb::StatusCode::client_error_bad_request, "Could not open path " + request->path + ": " + e.what());
     }
   };
 
-  server.on_error = [](shared_ptr<HttpServer::Request> /*request*/, const SimpleWeb::error_code & /*ec*/) {
+  server.on_error = [](std::shared_ptr<HttpServer::Request> /*request*/, const SimpleWeb::error_code & /*ec*/) {
     // Handle errors here
     // Note that connection timeouts will also call this handle with ec set to SimpleWeb::errc::operation_canceled
   };
 
-  thread server_thread([&server]() {
+  std::thread server_thread([&server]() {
     // Start server
     server.start();
   });
 
   // Wait for server to start so that the clients can connect
-  this_thread::sleep_for(chrono::seconds(1));
+  std::this_thread::sleep_for(std::chrono::seconds(1));
 
   server_thread.join();
 }
