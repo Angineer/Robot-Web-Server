@@ -46,6 +46,7 @@ int main() {
     // Parse inputs
     std::vector<std::string> inputs = split(input, '&');
     std::map<std::string, int> items;
+    std::string location;
 
     for ( auto it = inputs.begin(); it != inputs.end(); ++it) {
         std::vector<std::string> single = split(*it, '=');
@@ -61,16 +62,16 @@ int main() {
         }
       }
       else if(single[0] == "location"){};
-        // TODO: implement order locations
+        location = single[1];
     }
 
     // Create order
-    Order order(items);
+    Order order ( location, items );
     order.write_serial();
 
     // Send order to inventory server
     Client client ( SocketType::IP, "127.0.0.1:5000" );
-    std::string  inv_resp = client.send(order);
+    std::string inv_resp = client.send(order);
 
     // Let user know order status
     std::stringstream output;
