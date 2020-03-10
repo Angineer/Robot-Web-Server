@@ -1,9 +1,54 @@
+<!DOCTYPE html>
 <html>
     <head>
-		<title>How can I help you?</title>
-		<meta http-equiv="refresh" content="0; url=/order" />
+        <title>How can I help you?</title>
+        <script>
+            function addItem() {
+                var count_rows = document.getElementById('left_table').rows.length;
+                var row = document.getElementById('left_table').insertRow ( index = count_rows-1 );
+                row.innerHTML = "DYNAMIC_OPTIONS";
+            }
+        </script>
     </head>
-    <body>
-        <a href="/order">Place an order</a>
+    <body style='text-align:center;'>
+        <table style='margin-left:auto; margin-right:auto'>
+            <tr style='vertical-align:top;'>
+                <td style='vertical-align:top; padding:0px 30px;'>
+                    <p>Current Inventory</p>
+                    <table style='margin-left:auto; margin-right:auto'>
+                        <tr><td>Item</td></tr>
+                        DYNAMIC_INVENTORY
+                    </table>
+                </td>
+                <td style='vertical-align:top; padding:0px 30px;'>
+                    <p>Please select a snack and delivery location</p>
+                    <form action='/result' method='post'>
+                        <table style='display:inline; margin-left:auto; margin-right:auto;'>
+                            <tr>
+                                <td>
+                                    <table id='left_table'>
+                                        <tr><td>Items</td></tr>
+                                        <tr><td><button type='button' onclick='addItem()'>+</button></td></tr>
+                                    </table>
+                                </td>
+                                <td style='vertical-align:top;'>
+                                    <table id='right_table'>
+                                        <tr><td>Location</td></tr>
+                                        <tr>
+                                            <td>
+                                                <select name='location'>
+                                                    DYNAMIC_LOCATIONS
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                        <br><button>Submit</button>
+                    </form>
+                </td>
+            </tr>
+        </table>
     </body>
 </html>

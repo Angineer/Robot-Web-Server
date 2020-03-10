@@ -6,7 +6,7 @@ option(USE_STANDALONE_ASIO "set ON to use standalone Asio instead of Boost.Asio"
 option(BUILD_TESTING "set ON to build library tests" OFF)
 
 if(NOT MSVC)
-    add_compile_options(-std=c++11 -Wall -Wextra -Wsign-conversion)
+    add_compile_options(-std=c++17 -Wall -Wextra -Wsign-conversion)
 else()
     add_compile_options(/W1)
 endif()
