@@ -14,19 +14,29 @@
 using HttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
 using HttpClient = SimpleWeb::Client<SimpleWeb::HTTP>;
 
-// String parser, from https://stackoverflow.com/questions/236129/the-most-elegant-way-to-iterate-the-words-of-a-string
-template<typename Out>
-void split(const std::string &s, char delim, Out result) {
-    std::stringstream ss(s);
+// Convert the POST result from the input form into order
+std::tuple<std::map<std::string, int>, std::string>
+convertToOrder ( const std::string& postString ) {
+    std::map<std::string, int> order;
+    std::string location;
+
+    std::stringstream stream ( postString );
     std::string item;
-    while (std::getline(ss, item, delim)) {
-        *(result++) = item;
+    while ( std::getline ( stream, item, '&' ) ) {
+        size_t splitPos = item.find ( '=' );
+        std::string name =  item.substr ( 0, splitPos );
+        std::string qty = item.substr ( splitPos+1 );
+        if ( name == "location" ) {
+            location = std::move ( qty );
+        } else if ( !name.empty() && !qty.empty() ) {
+            try {
+                order.insert ( { std::move ( name ), std::stoi ( qty ) } );
+            } catch ( const std::invalid_argument & ) {
+                std::cout << "Invalid quantity entered" << std::endl;
+            }
+        }
     }
-}
-std::vector<std::string> split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
-    split(s, delim, std::back_inserter(elems));
-    return elems;
+    return std::make_tuple ( order, location );
 }
 
 // Read in an HTML file and store it in a string
@@ -49,7 +59,6 @@ std::string readHtml ( const std::string& filename )
         }
 
         // Read the file
-        std::cout << "Loading " << path << std::endl;
         std::ifstream fstream ( path );
         std::stringstream sstream;
         sstream << fstream.rdbuf();
@@ -69,6 +78,7 @@ std::string generateOkResponse ( const std::string& content )
     return response.str();
 }
 
+// Insert inventory contents into HTML
 void substituteInventory ( std::map<std::string, int> inventory,
                            std::string& content )
 {
@@ -77,30 +87,16 @@ void substituteInventory ( std::map<std::string, int> inventory,
     size_t startPos = content.find ( strToReplace );
     if ( startPos != std::string::npos ) {
         for ( const auto& item : inventory ) {
-            replacement << "<tr><td>" << item.first << " " << item.second
-                        << "</td></tr>";
+            replacement << "<tr><td>" << item.first << "</td>"
+                        << "<td> " << item.second << "</td>"
+                        << "<td><input type='number' name='" << item.first
+                        << "'></td></tr>";
         }
     }
     content.replace ( startPos, strToReplace.size(), replacement.str() );
 }
 
-void substituteOptions ( std::vector<std::string> options,
-                         std::string& content )
-{
-    std::string strToReplace { "DYNAMIC_OPTIONS" };
-    std::stringstream replacement;
-    replacement << "<tr><td><select name='item'>";
-    size_t startPos = content.find ( strToReplace );
-    if ( startPos != std::string::npos ) {
-        for ( const auto& option : options ) {
-            replacement << "<option value='" << option
-                        << "'>" << option << "</option>";
-        }
-    }
-    replacement << "</select></td></tr>";
-    content.replace ( startPos, strToReplace.size(), replacement.str() );
-}
-
+// Insert delivery locations into HTML
 void substituteLocations ( std::vector<std::string> options,
                            std::string& content )
 {
@@ -116,6 +112,7 @@ void substituteLocations ( std::vector<std::string> options,
     content.replace ( startPos, strToReplace.size(), replacement.str() );
 }
 
+// Generate simple dynamic results page
 std::string generateResultPage ( const std::string& result )
 {
     std::stringstream output;
@@ -155,16 +152,11 @@ int main() {
             std::map<std::string, int> tempInv { { "apple", 10 },
                                                  { "banana", 10 },
                                                  { "currant", 50 } };
-            std::vector<std::string> tempOpt;
-            for ( const auto& item : tempInv ) {
-                tempOpt.push_back ( item.first );
-            }
             std::vector<std::string> tempLoc { "couch", "kitchen", "bench" };
 
             // Load the html and substitute the dynamic parts
             std::string content = readHtml ( "index.html" );
             substituteInventory ( tempInv, content );
-            substituteOptions ( tempOpt, content );
             substituteLocations ( tempLoc, content );
 
             *response << generateOkResponse ( content );
@@ -179,32 +171,13 @@ int main() {
     []( std::shared_ptr<HttpServer::Response> response,
         std::shared_ptr<HttpServer::Request> request) {
 
-        // Retrieve POST string:
-        auto input = request->content.string();
+        // Retrieve and convert POST string
+        std::string input = request->content.string();
+        std::map<std::string, int> order;
+        std::string location;
+        std::tie ( order, location ) = convertToOrder ( input );
 
         /*
-        // Parse inputs
-        std::vector<std::string> inputs = split(input, '&');
-        std::map<std::string, int> items;
-        std::string location;
-
-        for ( auto it = inputs.begin(); it != inputs.end(); ++it) {
-            std::vector<std::string> single = split(*it, '=');
-
-          if(single[0] == "item"){
-            // Check if item is in map
-            if(items.find(std::string(single[1])) != items.end()){
-              items[single[1]]++;
-            }
-            // Otherwise, add it
-            else{
-              items.insert(std::pair<std::string, int>(std::string(single[1]), 1));
-            }
-          }
-          else if(single[0] == "location"){};
-            location = single[1];
-        }
-
         // Create order
         Order order ( location, items );
         order.write_serial();
@@ -215,7 +188,18 @@ int main() {
         */
 
         // Let user know order status
-        std::string content = generateResultPage ( "Order placed" );
+        std::stringstream debug;
+        debug << "Sending ";
+        bool first { true };
+        for ( auto item : order ) {
+            if ( !first ) {
+                debug << ", ";
+            }
+            debug << item.second << " " << item.first << "s";
+            first = false;
+        }
+        debug << " to " << location;
+        std::string content = generateResultPage ( debug.str() );
         *response << generateOkResponse ( content );
       };
 
