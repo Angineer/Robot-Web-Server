@@ -7,7 +7,7 @@
 
 // Added for the default_resource example
 #include <algorithm>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 #include <fstream>
 #include <vector>
 
@@ -43,8 +43,8 @@ convertToOrder ( const std::string& postString ) {
 std::string readHtml ( const std::string& filename )
 {
     try {
-        auto web_root_path = std::filesystem::canonical ( "../html" );
-        auto path = std::filesystem::canonical ( web_root_path / filename );
+        auto web_root_path = boost::filesystem::canonical ( "../html" );
+        auto path = boost::filesystem::canonical ( web_root_path / filename );
 
         // Check if path is within web_root_path
         if ( std::distance ( web_root_path.begin(), web_root_path.end() ) >
@@ -54,12 +54,12 @@ std::string readHtml ( const std::string& filename )
                            path.begin() ) ) {
             throw std::invalid_argument ( "path must be within root path" );
         }
-        if ( std::filesystem::is_directory ( path ) ) {
+        if ( boost::filesystem::is_directory ( path ) ) {
             path /= "index.html";
         }
 
         // Read the file
-        std::ifstream fstream ( path );
+        std::ifstream fstream ( path.string() );
         std::stringstream sstream;
         sstream << fstream.rdbuf();
         return sstream.str();
@@ -116,7 +116,9 @@ void substituteLocations ( std::vector<std::string> options,
 std::string generateResultPage ( const std::string& result )
 {
     std::stringstream output;
-    output << "<!DOCTYPE html><html><head></head>"
+    output << "<!DOCTYPE html><html><head>"
+           << "<meta name='viewport' content='width=device-width, initial-scale=1.0'>"
+           << "</head>"
            << "<body style='text-align:center;'><p>"
            << result
            << "</p><a href='/'>Place a new order</a></body></html>";
@@ -140,24 +142,27 @@ int main() {
             std::shared_ptr<HttpServer::Request> /* request */ ) {
 
             // Get current inventory
-            /*
             Command command("summary");
             Client client ( SocketType::IP, "127.0.0.1:5000" );
 
-            std::string curr_inv = client.send ( command );
+            std::string inv_str = client.send ( command );
+            std::map<std::string, int> inv_map;
 
-            std::vector<std::string> items = split ( curr_inv, '\n' );
-            */
+            for ( size_t start = 0, end = inv_str.find ( ";" );
+                  end != inv_str.size() && end != std::string::npos;
+                  start = end+1, end = inv_str.find ( ";" , start ) ) {
+                std::string full = inv_str.substr ( start, end );
+                size_t delim = full.find ( "," );
+                inv_map.emplace ( full.substr ( 0, delim ),
+                                  stoi ( full.substr ( delim+1 ) ) );
+            }
 
-            std::map<std::string, int> tempInv { { "apple", 10 },
-                                                 { "banana", 10 },
-                                                 { "currant", 50 } };
-            std::vector<std::string> tempLoc { "couch", "kitchen", "bench" };
+            std::vector<std::string> locations { "couch", "kitchen", "bench" };
 
             // Load the html and substitute the dynamic parts
             std::string content = readHtml ( "index.html" );
-            substituteInventory ( tempInv, content );
-            substituteLocations ( tempLoc, content );
+            substituteInventory ( inv_map, content );
+            substituteLocations ( locations, content );
 
             *response << generateOkResponse ( content );
 
@@ -195,7 +200,7 @@ int main() {
             if ( !first ) {
                 debug << ", ";
             }
-            debug << item.second << " " << item.first << "s";
+            debug << item.second << " " << item.first << "(s)";
             first = false;
         }
         debug << " to " << location;
