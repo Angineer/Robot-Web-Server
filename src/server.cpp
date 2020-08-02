@@ -17,10 +17,10 @@ using HttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
 using HttpClient = SimpleWeb::Client<SimpleWeb::HTTP>;
 
 // Convert the POST result from the input form into order
-std::tuple<std::map<std::string, int>, std::string>
+std::tuple<std::map<std::string, int>, int>
 convertToOrder ( const std::string& postString ) {
     std::map<std::string, int> order;
-    std::string location;
+    int location;
 
     std::stringstream stream ( postString );
     std::string item;
@@ -29,7 +29,7 @@ convertToOrder ( const std::string& postString ) {
         std::string name =  item.substr ( 0, splitPos );
         std::string qty = item.substr ( splitPos+1 );
         if ( name == "location" ) {
-            location = std::move ( qty );
+            location = std::stoi ( qty );
         } else if ( !name.empty() && !qty.empty() ) {
             try {
                 order.insert ( { std::move ( name ), std::stoi ( qty ) } );
@@ -99,7 +99,7 @@ void substituteInventory ( std::map<std::string, int> inventory,
 }
 
 // Insert delivery locations into HTML
-void substituteLocations ( std::vector<std::string> options,
+void substituteLocations ( std::map<int, std::string> options,
                            std::string& content )
 {
     std::string strToReplace { "DYNAMIC_LOCATIONS" };
@@ -107,8 +107,8 @@ void substituteLocations ( std::vector<std::string> options,
     size_t startPos = content.find ( strToReplace );
     if ( startPos != std::string::npos ) {
         for ( const auto& option : options ) {
-            replacement << "<option value='" << option
-                        << "'>" << option << "</option>";
+            replacement << "<option value='" << option.first
+                        << "'>" << option.second << "</option>";
         }
     }
     content.replace ( startPos, strToReplace.size(), replacement.str() );
@@ -172,32 +172,35 @@ int main() {
 
         // Retrieve and convert POST string
         std::string input = request->content.string();
-        std::map<std::string, int> order;
-        std::string location;
-        std::tie ( order, location ) = convertToOrder ( input );
+        std::map<std::string, int> items;
+        int location;
+        std::tie ( items, location ) = convertToOrder ( input );
 
-        /*
         // Create order
-        Order order ( location, items );
-        order.write_serial();
+        Order order;
+        order.set_location ( location );
+        order.set_items ( items );
 
         // Send order to inventory server
         Client client ( SocketType::IP, "127.0.0.1:5000" );
         std::string inv_resp = client.send(order);
-        */
 
         // Let user know order status
         std::stringstream debug;
-        debug << "Sending ";
-        bool first { true };
-        for ( auto item : order ) {
-            if ( !first ) {
-                debug << ", ";
+        debug << inv_resp;
+
+        if ( inv_resp == "Order placed" ) {
+            debug << ". Sending ";
+            bool first { true };
+            for ( auto item : items ) {
+                if ( !first ) {
+                    debug << ", ";
+                }
+                debug << item.second << " " << item.first << "(s)";
+                first = false;
             }
-            debug << item.second << " " << item.first << "(s)";
-            first = false;
+            debug << " to " << location;
         }
-        debug << " to " << location;
         std::string content = generateResultPage ( debug.str() );
         *response << generateOkResponse ( content );
       };
