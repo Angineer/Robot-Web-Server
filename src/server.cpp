@@ -2,7 +2,7 @@
 #include "server_http.hpp"
 #include "Client.h"
 #include "Command.h"
-#include "InventoryMsg.h"
+#include "Inventory.h"
 #include "Locations.h"
 #include "Socket.h"
 #include "Order.h"
@@ -148,7 +148,7 @@ int main() {
             Command command;
 
             command.set_command ( "inventory" );
-            InventoryMsg inv_msg { client.send ( command ) };
+            Inventory inv_msg { client.send ( command ) };
 
             command.set_command ( "locations" );
             Locations loc_msg { client.send ( command ) };
