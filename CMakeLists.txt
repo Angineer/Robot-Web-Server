@@ -57,8 +57,9 @@ endif()
 add_executable ( server ./src/server.cpp )
 
 set ( CEREAL_INCLUDE_DIR "../cereal/include" CACHE FILEPATH "Cereal include folder" )
-target_include_directories ( server PUBLIC ../robot-comm/include
-                                           ${CEREAL_INCLUDE_DIR} )
+target_include_directories ( server PUBLIC ../robot-comm/core
+                                    PUBLIC ../robot-comm/msgs
+                                    ${CEREAL_INCLUDE_DIR} )
 target_link_libraries ( server simple-web-server robot-comm )
 
 find_package ( Boost 1.53.0 COMPONENTS system thread filesystem REQUIRED )

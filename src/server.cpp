@@ -2,6 +2,8 @@
 #include "server_http.hpp"
 #include "Client.h"
 #include "Command.h"
+#include "InventoryMsg.h"
+#include "Locations.h"
 #include "Socket.h"
 #include "Order.h"
 
@@ -141,28 +143,20 @@ int main() {
         []( std::shared_ptr<HttpServer::Response> response, 
             std::shared_ptr<HttpServer::Request> /* request */ ) {
 
-            // Get current inventory
-            Command command("summary");
+            // Get current inventory and locations
             Client client ( SocketType::IP, "127.0.0.1:5000" );
+            Command command;
 
-            std::string inv_str = client.send ( command );
-            std::map<std::string, int> inv_map;
+            command.set_command ( "inventory" );
+            InventoryMsg inv_msg { client.send ( command ) };
 
-            for ( size_t start = 0, end = inv_str.find ( ";" );
-                  end != inv_str.size() && end != std::string::npos;
-                  start = end+1, end = inv_str.find ( ";" , start ) ) {
-                std::string full = inv_str.substr ( start, end );
-                size_t delim = full.find ( "," );
-                inv_map.emplace ( full.substr ( 0, delim ),
-                                  stoi ( full.substr ( delim+1 ) ) );
-            }
-
-            std::vector<std::string> locations { "couch", "kitchen", "bench" };
+            command.set_command ( "locations" );
+            Locations loc_msg { client.send ( command ) };
 
             // Load the html and substitute the dynamic parts
             std::string content = readHtml ( "index.html" );
-            substituteInventory ( inv_map, content );
-            substituteLocations ( locations, content );
+            substituteInventory ( inv_msg.get_items(), content );
+            substituteLocations ( loc_msg.get_locations(), content );
 
             *response << generateOkResponse ( content );
 
