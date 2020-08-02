@@ -27,6 +27,7 @@ convertToOrder ( const std::string& postString ) {
     while ( std::getline ( stream, item, '&' ) ) {
         size_t splitPos = item.find ( '=' );
         std::string name =  item.substr ( 0, splitPos );
+        name = std::regex_replace ( name, std::regex("\\+"), " " );
         std::string qty = item.substr ( splitPos+1 );
         if ( name == "location" ) {
             location = std::stoi ( qty );
