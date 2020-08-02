@@ -187,21 +187,18 @@ int main() {
 
         // Let user know order status
         std::stringstream debug;
-        debug << inv_resp;
-
-        if ( inv_resp == "Order placed" ) {
-            debug << ". Sending ";
-            bool first { true };
-            for ( auto item : items ) {
-                if ( !first ) {
-                    debug << ", ";
-                }
-                debug << item.second << " " << item.first << "(s)";
-                first = false;
+        debug << "Debug: Sending ";
+        bool first { true };
+        for ( auto item : items ) {
+            if ( !first ) {
+                debug << ", ";
             }
-            debug << " to " << location;
+            debug << item.second << " " << item.first << "(s)";
+            first = false;
         }
-        std::string content = generateResultPage ( debug.str() );
+        debug << " to " << location;
+
+        std::string content = generateResultPage ( inv_resp + "<br>" + debug.str() );
         *response << generateOkResponse ( content );
       };
 
