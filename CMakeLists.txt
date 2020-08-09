@@ -54,15 +54,16 @@ if(OPENSSL_FOUND)
 endif()
 
 # Robot web server
-add_executable ( server ./src/server.cpp )
+add_executable ( web_server ./src/server.cpp )
 
 set ( CEREAL_INCLUDE_DIR "../cereal/include" CACHE FILEPATH "Cereal include folder" )
-target_include_directories ( server PUBLIC ../robot-comm/core
-                                    PUBLIC ../robot-comm/msgs
-                                    ${CEREAL_INCLUDE_DIR} )
-target_link_libraries ( server simple-web-server robot-comm )
+target_include_directories ( web_server PUBLIC ../robot-comm/core
+                                        PUBLIC ../robot-comm/msgs
+                                        ${CEREAL_INCLUDE_DIR} )
+target_link_libraries ( web_server simple-web-server robot-comm )
 
 find_package ( Boost 1.53.0 COMPONENTS system thread filesystem REQUIRED )
-target_link_libraries ( server ${Boost_LIBRARIES} )
-target_include_directories ( server PRIVATE ${Boost_INCLUDE_DIR} )
+target_link_libraries ( web_server ${Boost_LIBRARIES} )
+target_include_directories ( web_server PRIVATE ${Boost_INCLUDE_DIR} )
 
+install ( TARGETS web_server RUNTIME DESTINATION /usr/bin )
